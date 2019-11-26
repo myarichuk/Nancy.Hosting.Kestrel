@@ -17,7 +17,6 @@ namespace Nancy.Host.Kestrel
         private readonly NancyOptions _options;
         private readonly ILogger<NancyMiddleware> _logger;
         private readonly RequestDelegate _next;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INancyEngine _engine;
 
         public NancyMiddleware(

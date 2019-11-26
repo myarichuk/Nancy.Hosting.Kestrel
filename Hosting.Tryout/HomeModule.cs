@@ -10,6 +10,7 @@ namespace Hosting.Tryout
         {
             
             Get("/", args => "Hello World from Kestrel!");
+            Get("/{Bar}", args => Response.AsJson(new { Foo = args.Bar }));
         }
     }
 }
