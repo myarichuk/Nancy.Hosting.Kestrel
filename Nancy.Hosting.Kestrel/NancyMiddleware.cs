@@ -1,13 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
-using Nancy.Bootstrapper;
 using Nancy.IO;
 // ReSharper disable UnusedMember.Global
-
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace Nancy.Host.Kestrel
@@ -19,18 +18,21 @@ namespace Nancy.Host.Kestrel
         private readonly RequestDelegate _next;
         private readonly INancyEngine _engine;
 
+        private readonly ConcurrentQueue<Url> _urlPool = new ConcurrentQueue<Url>();
+
         public NancyMiddleware(
-            NancyOptions options, 
-            ILogger<NancyMiddleware> logger, 
+            NancyOptions options,
+            ILogger<NancyMiddleware> logger,
             RequestDelegate next)
         {
             _options = options;
-            var bootstrapper = _options.Bootstrapper ?? new DefaultNancyBootstrapper();//new DefaultKestrelBootstrapper();
-            
+            var bootstrapper =
+                _options.Bootstrapper ?? new DefaultNancyBootstrapper(); //new DefaultKestrelBootstrapper();
+
             bootstrapper.Initialise();
             _engine = bootstrapper.GetEngine();
-            
-            _logger = logger; //TODO: add proper logging
+
+            _logger = logger;
             _next = next;
         }
 
@@ -38,49 +40,63 @@ namespace Nancy.Host.Kestrel
         {
             var request = CreateNancyRequest(context);
 
-            using var nancyContext = await _engine.HandleRequest(request).ConfigureAwait(false);
+            try
+            {
+                if(_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation($"Nancy: received request {request.Method}: {request.Url}");
 
-            SetNancyResponseToHttpResponse(context, nancyContext.Response);
-            if(_options.PerformPassThrough(nancyContext))
-                await _next(context);
+                using var nancyContext = await _engine.HandleRequest(request).ConfigureAwait(false);
+                
+                if(_logger.IsEnabled(LogLevel.Information) && nancyContext.Response.StatusCode == HttpStatusCode.OK)
+                    _logger.LogInformation($"Nancy response: OK, content-type: {nancyContext.Response.ContentType}");
+                else if(_logger.IsEnabled(LogLevel.Error))
+                    _logger.LogError($"Nancy response: {nancyContext.Response.StatusCode}, content-type: {nancyContext.Response.ContentType}, error: {nancyContext.Response.ReasonPhrase}");
+
+                SetNancyResponseToHttpResponse(context, nancyContext.Response);
+                if (_options.PerformPassThrough(nancyContext))
+                    await _next(context);
+            }
+            finally
+            {
+                _urlPool.Enqueue(request.Url);
+            }
         }
 
         private Request CreateNancyRequest(HttpContext context)
         {
             var expectedRequestLength = context.Request.ContentLength ?? 0;
 
-            //TODO: instead of allocating Url each time, implement object pool
-            var nancyUrl = new Url
-                               {
-                                   Scheme = context.Request.Scheme,
-                                   HostName = context.Request.Host.Host,
-                                   Port = context.Request.Host.Port,
-                                   BasePath = context.Request.PathBase,
-                                   Path = context.Request.Path,
-                                   Query = context.Request.QueryString.Value,
-                               };
+            if(!_urlPool.TryDequeue(out var nancyUrl))
+                nancyUrl = new Url();
+
+            nancyUrl.Scheme = context.Request.Scheme;
+            nancyUrl.HostName = context.Request.Host.Host;
+            nancyUrl.Port = context.Request.Host.Port;
+            nancyUrl.BasePath = context.Request.PathBase;
+            nancyUrl.Path = context.Request.Path;
+            nancyUrl.Query = context.Request.QueryString.Value;
 
             RequestStream body = null;
-            
+
             if (expectedRequestLength != 0 || HasChunkedEncoding(context.Request.Headers))
                 body = RequestStream.FromStream(context.Request.Body, expectedRequestLength,
                     StaticConfiguration.DisableRequestStreamSwitching ?? true);
 
             var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.AsEnumerable());
 
-            //TODO: instead of allocating Request each time, implement object pool
-            return new Request(context.Request.Method.ToUpperInvariant(), 
-                nancyUrl, 
-                body, 
-                headers, 
-                context.Request.HttpContext.Connection.RemoteIpAddress.ToString(), 
+            return new Request(context.Request.Method.ToUpperInvariant(),
+                nancyUrl,
+                body,
+                headers,
+                context.Request.HttpContext.Connection.RemoteIpAddress.ToString(),
                 context.Request.HttpContext.Connection.ClientCertificate,
                 context.Request.Protocol);
         }
 
         private static bool HasChunkedEncoding(IHeaderDictionary incomingHeaders)
         {
-            if (incomingHeaders == null || !incomingHeaders.TryGetValue("Transfer-Encoding", out var transferEncodingValue))
+            if (incomingHeaders == null ||
+                !incomingHeaders.TryGetValue("Transfer-Encoding", out var transferEncodingValue))
                 return false;
 
             var transferEncodingString = transferEncodingValue.SingleOrDefault() ?? string.Empty;
@@ -91,11 +107,11 @@ namespace Nancy.Host.Kestrel
         {
             SetHttpResponseHeaders(context, response);
 
-            if (response.ContentType != null) 
+            if (response.ContentType != null)
                 context.Response.ContentType = response.ContentType;
 
             context.Response.StatusCode = (int) response.StatusCode;
-            
+
             if (response.ReasonPhrase != null)
                 context.Response.HttpContext.Features.Get<IHttpResponseFeature>().ReasonPhrase = response.ReasonPhrase;
 
@@ -104,10 +120,10 @@ namespace Nancy.Host.Kestrel
 
         private static void SetHttpResponseHeaders(HttpContext context, Response response)
         {
-            foreach (var header in response.Headers) 
+            foreach (var header in response.Headers)
                 context.Response.Headers.Add(header.Key, header.Value);
 
-            foreach(var cookie in response.Cookies)
+            foreach (var cookie in response.Cookies)
                 context.Response.Headers.Add("Set-Cookie", cookie.ToString());
         }
     }

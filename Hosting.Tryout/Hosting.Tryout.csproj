@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Nancy.Host.Kestrel\Nancy.Host.Kestrel.csproj" />
+    <ProjectReference Include="..\Nancy.Hosting.Kestrel\Nancy.Hosting.Kestrel.csproj" />
   </ItemGroup>
 
 </Project>

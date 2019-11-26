@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29519.87
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nancy.Host.Kestrel", "Nancy.Host.Kestrel\Nancy.Host.Kestrel.csproj", "{E016CD66-FDA8-461F-B968-D1A7DE08EEA5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nancy.Hosting.Kestrel", "Nancy.Hosting.Kestrel\Nancy.Hosting.Kestrel.csproj", "{E016CD66-FDA8-461F-B968-D1A7DE08EEA5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hosting.Tryout", "Hosting.Tryout\Hosting.Tryout.csproj", "{E8786442-DA67-4EB3-9760-D220852935F9}"
 EndProject
