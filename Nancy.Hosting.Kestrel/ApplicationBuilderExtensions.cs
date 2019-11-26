@@ -1,10 +1,10 @@
 ﻿using System;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Nancy.Host.Kestrel
+namespace Nancy.Hosting.Kestrel
 {
     public static class ApplicationBuilderExtensions
     {

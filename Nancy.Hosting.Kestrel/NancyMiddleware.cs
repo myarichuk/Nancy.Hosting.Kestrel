@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Nancy.IO;
+
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace Nancy.Host.Kestrel
+namespace Nancy.Hosting.Kestrel
 {
     public class NancyMiddleware
     {

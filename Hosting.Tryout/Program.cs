@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Nancy.Host.Kestrel;
+using Nancy.Hosting.Kestrel;
 
 namespace Hosting.Tryout
 {

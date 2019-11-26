@@ -1,7 +1,7 @@
 ﻿using System;
 using Nancy.Bootstrapper;
 
-namespace Nancy.Host.Kestrel
+namespace Nancy.Hosting.Kestrel
 {
 
 
